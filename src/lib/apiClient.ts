@@ -28,9 +28,22 @@ export const getAuthHeader = (): Record<string, string> => {
   return {};
 };
 
+async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, options);
+  } catch (error: any) {
+    if (error.name === 'TypeError' || error.message?.includes('fetch') || error.message?.includes('NetworkError')) {
+      throw new Error(
+        'Unable to connect to local backend at http://127.0.0.1:8000. Ensure the Python backend is running or use Offline Mode.'
+      );
+    }
+    throw error;
+  }
+}
+
 export const apiClient = {
   async register(full_name: string, email: string, password: string): Promise<AuthResponse> {
-    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ full_name, email, password }),
@@ -44,7 +57,7 @@ export const apiClient = {
   },
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -58,7 +71,7 @@ export const apiClient = {
   },
 
   async forgotPassword(email: string): Promise<ForgotPasswordResponse> {
-    const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/auth/forgot-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
@@ -72,7 +85,7 @@ export const apiClient = {
   },
 
   async resetPassword(token: string, new_password: string): Promise<{ message: string }> {
-    const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/auth/reset-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, new_password }),
@@ -86,7 +99,7 @@ export const apiClient = {
   },
 
   async getMe(): Promise<User> {
-    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    const res = await safeFetch(`${API_BASE_URL}/api/auth/me`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -101,3 +114,4 @@ export const apiClient = {
     return data;
   }
 };
+

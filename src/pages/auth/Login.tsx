@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Wallet, Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
+import { Wallet, Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, HardDrive } from 'lucide-react';
 
 export const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loginAsGuest } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -31,6 +31,11 @@ export const Login: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOfflineMode = () => {
+    loginAsGuest();
+    navigate('/');
   };
 
   return (
@@ -132,8 +137,20 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
+          {/* Offline Mode / Guest Option */}
+          <div className="mt-5 pt-5 border-t border-slate-800/60">
+            <button
+              type="button"
+              onClick={handleOfflineMode}
+              className="w-full py-3 px-4 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-300 hover:text-white font-medium text-xs flex items-center justify-center gap-2 transition-all"
+            >
+              <HardDrive className="w-4 h-4 text-emerald-400" />
+              <span>Use Offline Mode (No Backend/Permissions Required)</span>
+            </button>
+          </div>
+
           {/* Footer Navigation */}
-          <div className="mt-8 text-center border-t border-slate-800/80 pt-6">
+          <div className="mt-6 text-center border-t border-slate-800/80 pt-6">
             <p className="text-sm text-slate-400">
               Don't have an account yet?{' '}
               <Link
@@ -149,3 +166,4 @@ export const Login: React.FC = () => {
     </div>
   );
 };
+
