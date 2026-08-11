@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Wallet, 
@@ -11,9 +11,12 @@ import {
   Moon,
   ChevronLeft,
   ChevronRight,
-  Plus
+  Plus,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import { useBudget } from '../context/BudgetContext';
+import { useAuth } from '../context/AuthContext';
 import { getMonthName } from '../utils/formatters';
 
 interface AppLayoutProps {
@@ -23,6 +26,8 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children, onOpenExpenseModal }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const { 
     currentMonthId, 
     setCurrentMonthId, 
@@ -30,6 +35,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, onOpenExpenseMod
     settings, 
     updateSettings 
   } = useBudget();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth/login');
+  };
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -88,7 +98,20 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, onOpenExpenseMod
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
+        {/* User Card */}
+        {user && (
+          <div className="mx-4 mt-4 p-3 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              {user.full_name ? user.full_name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{user.full_name || 'User'}</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
+            </div>
+          </div>
+        )}
+
+        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto no-scrollbar">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -109,7 +132,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, onOpenExpenseMod
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
           <button
             onClick={onOpenExpenseModal}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-650 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-md hover:shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
@@ -117,17 +140,27 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, onOpenExpenseMod
             <Plus className="w-4 h-4" />
             Add Expense
           </button>
-          
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-all"
-          >
-            <span className="flex items-center gap-2">
-              {settings.theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
-              {settings.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-            </span>
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px]">Theme</kbd>
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="flex-1 flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium transition-all"
+            >
+              <span className="flex items-center gap-2">
+                {settings.theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
+                {settings.theme === 'dark' ? 'Light' : 'Dark'}
+              </span>
+            </button>
+
+            <button
+              onClick={handleLogout}
+              title="Sign Out"
+              className="p-2.5 rounded-xl border border-red-500/20 text-red-500 dark:text-red-400 hover:bg-red-500/10 text-xs font-medium transition-all"
+              aria-label="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -137,13 +170,20 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, onOpenExpenseMod
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white">
             <Wallet className="w-4.5 h-4.5" />
           </div>
-          <h1 className="font-bold text-base text-gradient-primary">FinTrack</h1>
+          <div>
+            <h1 className="font-bold text-base text-gradient-primary">FinTrack</h1>
+            {user && (
+              <p className="text-[10px] text-slate-400 truncate max-w-[120px]">
+                {user.full_name || user.email}
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-505 dark:text-slate-400"
+            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
             aria-label="Toggle Theme"
           >
             {settings.theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
@@ -155,6 +195,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, onOpenExpenseMod
             aria-label="Add Expense"
           >
             <Plus className="w-4.5 h-4.5" />
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400"
+            aria-label="Logout"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
@@ -200,7 +248,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, onOpenExpenseMod
               </button>
             </div>
 
-            <div className="hidden md:block w-8" /> {/* Spacer to center the selector on desktop */}
+            <div className="hidden md:block w-8" />
           </div>
         )}
 
