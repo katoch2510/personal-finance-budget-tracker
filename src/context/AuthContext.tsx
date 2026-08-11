@@ -31,6 +31,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const initAuth = async () => {
+      const storedLocalUser = localStorage.getItem('local_auth_user');
+      if (storedLocalUser) {
+        try {
+          setUser(JSON.parse(storedLocalUser));
+          setIsGuest(true);
+          setLoading(false);
+          return;
+        } catch {
+          localStorage.removeItem('local_auth_user');
+        }
+      }
+
       const storedGuest = localStorage.getItem('is_guest_mode');
       if (storedGuest === 'true') {
         setUser(GUEST_USER);
@@ -59,26 +71,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await apiClient.login(email, password);
-    localStorage.removeItem('is_guest_mode');
-    setIsGuest(false);
-    localStorage.setItem('auth_token', res.access_token);
-    setToken(res.access_token);
-    setUser(res.user);
+    try {
+      const res = await apiClient.login(email, password);
+      localStorage.removeItem('is_guest_mode');
+      localStorage.removeItem('local_auth_user');
+      setIsGuest(false);
+      localStorage.setItem('auth_token', res.access_token);
+      setToken(res.access_token);
+      setUser(res.user);
+    } catch (error: any) {
+      // If network unreachable (e.g. mobile phone or Vercel deployment without cloud backend)
+      if (error.message?.includes('Unable to connect') || error.message?.includes('127.0.0.1') || error.message?.includes('fetch')) {
+        const nameFromEmail = email.split('@')[0].replace(/[._]/g, ' ');
+        const formattedName = nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1);
+        const localUser: User = {
+          id: Date.now(),
+          full_name: formattedName,
+          email: email,
+          created_at: new Date().toISOString(),
+        };
+        localStorage.setItem('local_auth_user', JSON.stringify(localUser));
+        localStorage.setItem('is_guest_mode', 'true');
+        setIsGuest(true);
+        setUser(localUser);
+        return;
+      }
+      throw error;
+    }
   };
 
   const register = async (fullName: string, email: string, password: string) => {
-    const res = await apiClient.register(fullName, email, password);
-    localStorage.removeItem('is_guest_mode');
-    setIsGuest(false);
-    localStorage.setItem('auth_token', res.access_token);
-    setToken(res.access_token);
-    setUser(res.user);
+    try {
+      const res = await apiClient.register(fullName, email, password);
+      localStorage.removeItem('is_guest_mode');
+      localStorage.removeItem('local_auth_user');
+      setIsGuest(false);
+      localStorage.setItem('auth_token', res.access_token);
+      setToken(res.access_token);
+      setUser(res.user);
+    } catch (error: any) {
+      if (error.message?.includes('Unable to connect') || error.message?.includes('127.0.0.1') || error.message?.includes('fetch')) {
+        const localUser: User = {
+          id: Date.now(),
+          full_name: fullName,
+          email: email,
+          created_at: new Date().toISOString(),
+        };
+        localStorage.setItem('local_auth_user', JSON.stringify(localUser));
+        localStorage.setItem('is_guest_mode', 'true');
+        setIsGuest(true);
+        setUser(localUser);
+        return;
+      }
+      throw error;
+    }
   };
 
   const loginAsGuest = () => {
     localStorage.setItem('is_guest_mode', 'true');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('local_auth_user');
     setIsGuest(true);
     setToken(null);
     setUser(GUEST_USER);
@@ -95,10 +147,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('is_guest_mode');
+    localStorage.removeItem('local_auth_user');
     setToken(null);
     setIsGuest(false);
     setUser(null);
   };
+
 
   return (
     <AuthContext.Provider
