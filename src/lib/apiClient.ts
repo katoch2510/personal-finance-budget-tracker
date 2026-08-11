@@ -33,13 +33,12 @@ async function safeFetch(url: string, options?: RequestInit): Promise<Response> 
     return await fetch(url, options);
   } catch (error: any) {
     if (error.name === 'TypeError' || error.message?.includes('fetch') || error.message?.includes('NetworkError')) {
-      throw new Error(
-        'Unable to connect to local backend at http://127.0.0.1:8000. Ensure the Python backend is running or use Offline Mode.'
-      );
+      throw new Error('Unable to connect to backend server.');
     }
     throw error;
   }
 }
+
 
 export const apiClient = {
   async register(full_name: string, email: string, password: string): Promise<AuthResponse> {
